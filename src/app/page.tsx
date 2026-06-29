@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { usePapers, useCollections } from "@/lib/hooks";
 import { Paper, ReadingStatus } from "@/lib/types";
 import StatusColumn from "@/components/StatusColumn";
-import PaperDetail from "@/components/PaperDetail";
 import {
   Search,
   RefreshCw,
@@ -30,7 +30,8 @@ export default function Home() {
   } = usePapers();
   const collections = useCollections();
 
-  const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
+  const router = useRouter();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [showDone, setShowDone] = useState(false);
 
@@ -64,13 +65,15 @@ export default function Home() {
   const handleMove = useCallback(
     (key: string, status: ReadingStatus) => {
       movePaper(key, status);
-      if (selectedPaper?.key === key) {
-        setSelectedPaper((prev) =>
-          prev ? { ...prev, status } : null
-        );
-      }
     },
-    [movePaper, selectedPaper]
+    [movePaper]
+  );
+
+  const handleSelect = useCallback(
+    (paper: Paper) => {
+      router.push(`/paper/${paper.key}`);
+    },
+    [router]
   );
 
   const doneCount = papersByStatus.done?.length ?? 0;
@@ -281,7 +284,7 @@ export default function Home() {
                   status={status}
                   papers={papersByStatus[status] || []}
                   onMove={handleMove}
-                  onSelect={setSelectedPaper}
+                  onSelect={handleSelect}
                   collectionNames={collectionNames}
                 />
               ))}
@@ -294,7 +297,7 @@ export default function Home() {
                 status="done"
                 papers={papersByStatus.done || []}
                 onMove={handleMove}
-                onSelect={setSelectedPaper}
+                onSelect={handleSelect}
                 collectionNames={collectionNames}
               />
             </div>
@@ -302,14 +305,6 @@ export default function Home() {
         </main>
       </div>
 
-      {selectedPaper && (
-        <PaperDetail
-          paper={selectedPaper}
-          onClose={() => setSelectedPaper(null)}
-          onMove={handleMove}
-          collectionNames={collectionNames}
-        />
-      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   --background: #fafafa;
@@ -43,6 +44,279 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* react-pdf page styling */
+.react-pdf__Page {
+  margin-bottom: 8px;
+  position: relative;
+}
+
+.react-pdf__Page__canvas {
+  margin: 0 auto;
+  display: block !important;
+}
+
+/* Ensure text layer works for selection */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.25;
+  line-height: 1;
+  z-index: 2;
+}
+
+.textLayer span,
+.textLayer br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.textLayer ::selection {
+  background: rgba(0, 0, 255, 0.25);
+}
+
+/* ══════════════════════════════════════════
+   GitHub-inspired Markdown Rendering
+   Tuned for compact sidebar panels
+   ══════════════════════════════════════════ */
+
+.markdown-body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans",
+               Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1f2328;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* ── Headings ── */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.25em;
+  margin-bottom: 0.75em;
+  color: #1f2328;
+}
+
+.markdown-body h1 {
+  font-size: 1.6em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #d1d9e0;
+}
+
+.markdown-body h2 {
+  font-size: 1.3em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid #eaecef;
+}
+
+.markdown-body h3 { font-size: 1.15em; }
+.markdown-body h4 { font-size: 1em; }
+
+/* First child heading — no top margin */
+.markdown-body > h1:first-child,
+.markdown-body > h2:first-child,
+.markdown-body > h3:first-child {
+  margin-top: 0;
+}
+
+/* ── Paragraphs ── */
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 0.75em;
+}
+
+/* ── Bold & Italic ── */
+.markdown-body strong {
+  font-weight: 600;
+  color: #1f2328;
+}
+
+.markdown-body em {
+  font-style: italic;
+}
+
+/* ── Links ── */
+.markdown-body a {
+  color: #0969da;
+  text-decoration: underline;
+  text-decoration-color: rgba(9, 105, 218, 0.3);
+  text-underline-offset: 0.2rem;
+  transition: color 0.15s, text-decoration-color 0.15s;
+}
+
+.markdown-body a:hover {
+  color: #0550ae;
+  text-decoration-color: #0550ae;
+}
+
+/* ── Inline Code ── */
+.markdown-body code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 85%;
+  padding: 0.2em 0.4em;
+  background-color: rgba(175, 184, 193, 0.2);
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+/* ── Code Blocks ── */
+.markdown-body pre {
+  padding: 12px 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  margin-top: 0;
+  margin-bottom: 0.75em;
+  border: 1px solid #d1d9e0;
+}
+
+.markdown-body pre code {
+  padding: 0;
+  font-size: 100%;
+  background-color: transparent;
+  border-radius: 0;
+  word-break: normal;
+  white-space: pre;
+}
+
+/* ── Blockquotes ── */
+.markdown-body blockquote {
+  padding: 0.5em 1em;
+  margin: 0 0 0.75em 0;
+  color: #59636e;
+  border-left: 0.25em solid #d1d9e0;
+  background-color: #f6f8fa;
+  border-radius: 0 6px 6px 0;
+}
+
+.markdown-body blockquote p {
+  margin-bottom: 0.25em;
+}
+
+.markdown-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Lists ── */
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+  margin-top: 0;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.markdown-body li::marker {
+  color: #848d97;
+}
+
+.markdown-body li > p {
+  margin-top: 0.5em;
+}
+
+/* Nested lists */
+.markdown-body ul ul,
+.markdown-body ul ol,
+.markdown-body ol ul,
+.markdown-body ol ol {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+/* Task lists */
+.markdown-body li input[type="checkbox"] {
+  margin-right: 0.5em;
+}
+
+/* ── Tables ── */
+.markdown-body table {
+  border-collapse: collapse;
+  border-spacing: 0;
+  width: 100%;
+  overflow: auto;
+  margin-bottom: 0.75em;
+  font-size: 0.875em;
+  display: block;
+}
+
+.markdown-body th,
+.markdown-body td {
+  padding: 6px 10px;
+  border: 1px solid #d1d9e0;
+}
+
+.markdown-body th {
+  font-weight: 600;
+  background-color: #f6f8fa;
+}
+
+.markdown-body tr:nth-child(even) {
+  background-color: #f6f8fa;
+}
+
+.markdown-body tr:hover {
+  background-color: #f1f3f5;
+}
+
+/* ── Horizontal Rule ── */
+.markdown-body hr {
+  height: 0.2em;
+  margin: 1.25em 0;
+  padding: 0;
+  background-color: #d1d9e0;
+  border: 0;
+  border-radius: 1px;
+}
+
+/* ── Images ── */
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  margin: 0.5em 0;
+}
+
+/* ── KaTeX Math ── */
+.markdown-body .katex {
+  font-size: 1.05em;
+}
+
+.markdown-body .katex-display {
+  margin: 0.75em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.4em 0.5em;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+}
+
+/* ══════════════════════════════════════════
+   Notes Panel Variant — slightly larger
+   ══════════════════════════════════════════ */
+.markdown-body-notes {
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.markdown-body-notes h1 { font-size: 1.7em; }
+.markdown-body-notes h2 { font-size: 1.4em; }
+.markdown-body-notes h3 { font-size: 1.2em; }
 
 /* Subtle gradient background */
 body::before {
