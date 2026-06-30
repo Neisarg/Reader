@@ -63,11 +63,13 @@ export default function PdfViewer({ url, paperKey, onAskAI, onAddToNotes }: PdfV
   const pendingHighlightData = useRef<{ pageNumber: number; rects: HighlightRect[]; text: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<Map<number, HTMLElement>>(new Map());
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loadedRef = useRef(false);
 
   // Load highlights from Zotero, fallback to localStorage
   useEffect(() => {
@@ -92,9 +94,14 @@ export default function PdfViewer({ url, paperKey, onAskAI, onAddToNotes }: PdfV
     load();
   }, [paperKey]);
 
-  // Persist to localStorage immediately, debounce Zotero sync (2s)
+  // Ref that always points to the latest highlights for use in callbacks
+  const highlightsRef = useRef<HighlightData[]>(highlights);
+  highlightsRef.current = highlights;
+
+  // Persist to localStorage immediately, debounce server sync (2s)
   const persistHighlights = useCallback((updated: HighlightData[]) => {
     setHighlights(updated);
+    setDirty(true);
     localStorage.setItem(`reader_hl_${paperKey}`, JSON.stringify(updated));
 
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -195,11 +202,11 @@ export default function PdfViewer({ url, paperKey, onAskAI, onAddToNotes }: PdfV
       text: data.text,
       rects: data.rects,
     };
-    persistHighlights([...highlights, highlight]);
+    persistHighlights([...highlightsRef.current, highlight]);
     window.getSelection()?.removeAllRanges();
     pendingHighlightData.current = null;
     dismissPopup();
-  }, [highlightColor, highlights, persistHighlights, dismissPopup]);
+  }, [highlightColor, persistHighlights, dismissPopup]);
 
   // Handle text selection — capture rects and show popup
   const handleTextSelection = useCallback(() => {
@@ -232,8 +239,8 @@ export default function PdfViewer({ url, paperKey, onAskAI, onAddToNotes }: PdfV
   }, [mode, captureSelectionRects, highlightSelection]);
 
   const deleteHighlight = useCallback((id: string) => {
-    persistHighlights(highlights.filter((h) => h.id !== id));
-  }, [highlights, persistHighlights]);
+    persistHighlights(highlightsRef.current.filter((h) => h.id !== id));
+  }, [persistHighlights]);
 
   const goToPage = useCallback((pg: number) => {
     const el = pageRefs.current.get(pg);
@@ -243,24 +250,35 @@ export default function PdfViewer({ url, paperKey, onAskAI, onAddToNotes }: PdfV
   const zoomIn = () => setScale((s) => Math.min(3, +(s + 0.2).toFixed(1)));
   const zoomOut = () => setScale((s) => Math.max(0.5, +(s - 0.2).toFixed(1)));
 
-  // Save highlights to Zotero — embeds them in the PDF and saves as a note
-  const saveToZotero = useCallback(async () => {
-    if (saving || highlights.length === 0) return;
+  // Save highlights — local file + annotated PDF uploaded to Zotero
+  const saveHighlights = useCallback(async () => {
+    if (saving) return;
+    // Cancel any pending debounced auto-save to prevent races
+    if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
     setSaving(true);
     try {
-      await fetch("/api/highlights", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pdfUrl: url,
-          highlights,
-          paperKey,
+      await Promise.allSettled([
+        // Save highlight data locally
+        fetch("/api/highlights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ highlights, paperKey }),
         }),
-      });
+        // Embed in PDF and upload to Zotero (only if there are highlights)
+        ...(highlights.length > 0
+          ? [fetch("/api/highlights/sync", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ pdfUrl: url, highlights, paperKey }),
+            })]
+          : []),
+      ]);
+      setDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch { /* ignore */ }
-    finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   }, [highlights, paperKey, url, saving]);
 
   return (
@@ -306,15 +324,15 @@ export default function PdfViewer({ url, paperKey, onAskAI, onAddToNotes }: PdfV
               ))}
             </div>
           )}
-          {highlights.length > 0 && (
+          {(highlights.length > 0 || dirty) && (
             <>
               <div className="w-px h-5 bg-zinc-300 mx-1" />
-              <span className="text-xs text-zinc-400">{highlights.length}</span>
-              <button onClick={saveToZotero} disabled={saving}
+              {highlights.length > 0 && <span className="text-xs text-zinc-400">{highlights.length}</span>}
+              <button onClick={saveHighlights} disabled={saving}
                 className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all
                   ${saved ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"}`}>
                 {saving ? <Loader2 size={12} className="animate-spin" /> : saved ? <Check size={12} /> : <Save size={12} />}
-                {saved ? "Saved" : "Zotero"}
+                {saved ? "Saved" : "Save"}
               </button>
             </>
           )}

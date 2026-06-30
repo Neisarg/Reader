@@ -4,7 +4,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Paper, ReadingStatus, STATUS_CONFIG } from "@/lib/types";
 import { parseItemStatus } from "@/lib/zotero";
-import PdfViewer from "@/components/PdfViewer";
+import dynamic from "next/dynamic";
+
+const PdfViewer = dynamic(() => import("@/components/PdfViewer"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full flex items-center justify-center">
+      <div className="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full" />
+    </div>
+  ),
+});
 import ChatPanel from "@/components/ChatPanel";
 import NotesPanel from "@/components/NotesPanel";
 import {
