@@ -1,0 +1,74 @@
+#!/bin/bash
+
+APP_DIR="/Users/neisarg/Workspace/AIApps/Reader"
+NODE="/opt/homebrew/bin/node"
+NEXT="$APP_DIR/node_modules/.bin/next"
+PORT=3777
+URL="http://localhost:$PORT"
+LOG="/tmp/reader-server.log"
+
+# Ensure node and next exist
+if [ ! -x "$NODE" ]; then
+  osascript -e 'display alert "Reader" message "Node.js not found at /opt/homebrew/bin/node" as critical'
+  exit 1
+fi
+
+if [ ! -f "$NEXT" ]; then
+  osascript -e 'display alert "Reader" message "Run npm install in the Reader directory first" as critical'
+  exit 1
+fi
+
+export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
+cd "$APP_DIR" || exit 1
+
+# If server is already running, just open the window
+if curl -s -o /dev/null "$URL" 2>/dev/null; then
+  if [ -d "/Applications/Google Chrome.app" ]; then
+    open -na "Google Chrome" --args --app="$URL" --new-window
+    sleep 0.5
+    osascript -e 'tell application "Google Chrome" to activate'
+  else
+    open "$URL"
+  fi
+  # Keep the app process alive while server runs
+  while curl -s -o /dev/null "$URL" 2>/dev/null; do sleep 5; done
+  exit 0
+fi
+
+# Build if needed
+if [ ! -d ".next" ]; then
+  "$NODE" "$NEXT" build >> "$LOG" 2>&1
+fi
+
+# Start server
+"$NODE" "$NEXT" start -p $PORT >> "$LOG" 2>&1 &
+SERVER_PID=$!
+
+# Wait for ready
+for i in {1..30}; do
+  curl -s -o /dev/null "$URL" 2>/dev/null && break
+  sleep 0.5
+done
+
+# Verify server started
+if ! curl -s -o /dev/null "$URL" 2>/dev/null; then
+  osascript -e 'display alert "Reader" message "Server failed to start. Check /tmp/reader-server.log" as critical'
+  kill $SERVER_PID 2>/dev/null
+  exit 1
+fi
+
+# Open as standalone window and bring to front
+if [ -d "/Applications/Google Chrome.app" ]; then
+  open -na "Google Chrome" --args --app="$URL" --new-window
+  sleep 0.5
+  osascript -e 'tell application "Google Chrome" to activate'
+elif [ -d "/Applications/Brave Browser.app" ]; then
+  open -na "Brave Browser" --args --app="$URL" --new-window
+elif [ -d "/Applications/Microsoft Edge.app" ]; then
+  open -na "Microsoft Edge" --args --app="$URL" --new-window
+else
+  open "$URL"
+fi
+
+wait $SERVER_PID
